@@ -77,20 +77,19 @@ def gerar_anuncio(foto1, foto2, foto3, titulo, preco, infos, saida="anuncio.jpg"
     rodape_altura = ALTURA - rodape_y
 
     # ── TOPO ─────────────────────────────────────────────────────────────────
-    # Fundo preto já está
     # Caixa amarela "VENDE-SE"
-    vende_largura = 530
-    vende_margem = 30
+    vende_largura = 520
+    vende_margem = 25
     draw.rectangle([vende_margem, vende_margem, vende_largura, topo_altura - vende_margem], fill=AMARELO)
 
-    fonte_vende = carregar_fonte(95, negrito=True)
-    draw.text((vende_margem + 20, vende_margem + 10), "VENDE-SE", font=fonte_vende, fill=PRETO)
+    fonte_vende = carregar_fonte(110, negrito=True)
+    draw.text((vende_margem + 18, vende_margem + 8), "VENDE-SE", font=fonte_vende, fill=PRETO)
 
     # Infos no canto superior direito
-    fonte_info = carregar_fonte(34, negrito=True)
-    info_x = vende_largura + 40
-    info_y = vende_margem + 10
-    espacamento = 42
+    fonte_info = carregar_fonte(42, negrito=True)
+    info_x = vende_largura + 45
+    info_y = vende_margem + 8
+    espacamento = 50
 
     for i, linha in enumerate(infos[:4]):
         draw.text((info_x, info_y + i * espacamento), linha.upper(), font=fonte_info, fill=BRANCO)
@@ -119,26 +118,27 @@ def gerar_anuncio(foto1, foto2, foto3, titulo, preco, infos, saida="anuncio.jpg"
     # ── RODAPÉ ───────────────────────────────────────────────────────────────
     draw.rectangle([0, rodape_y, LARGURA, ALTURA], fill=AMARELO)
 
-    # Título do carro (esquerda)
-    fonte_titulo = carregar_fonte(62, negrito=True)
+    # Título do carro (esquerda) — quebra em 2 linhas
+    fonte_titulo = carregar_fonte(72, negrito=True)
     titulo_upper = titulo.upper()
-
-    # Quebra linha se for longo
     palavras = titulo_upper.split()
-    linha1 = " ".join(palavras[:len(palavras)//2])
-    linha2 = " ".join(palavras[len(palavras)//2:])
+    meio = len(palavras) // 2
+    linha1 = " ".join(palavras[:meio])
+    linha2 = " ".join(palavras[meio:])
 
-    margem_rod = 30
-    draw.text((margem_rod, rodape_y + 18), linha1, font=fonte_titulo, fill=PRETO)
-    draw.text((margem_rod, rodape_y + 18 + 70), linha2, font=fonte_titulo, fill=PRETO)
+    margem_rod = 28
+    draw.text((margem_rod, rodape_y + 15), linha1, font=fonte_titulo, fill=PRETO)
+    draw.text((margem_rod, rodape_y + 15 + 78), linha2, font=fonte_titulo, fill=PRETO)
 
-    # Preço (direita)
-    fonte_preco = carregar_fonte(72, negrito=True)
-    bbox = draw.textbbox((0, 0), preco, font=fonte_preco)
+    # Preço (direita) — bem grande
+    fonte_preco = carregar_fonte(90, negrito=True)
+    preco_formatado = preco if preco.upper().startswith("R$") else f"R${preco}"
+    bbox = draw.textbbox((0, 0), preco_formatado, font=fonte_preco)
     preco_largura = bbox[2] - bbox[0]
+    preco_altura = bbox[3] - bbox[1]
     preco_x = LARGURA - preco_largura - margem_rod
-    preco_y = rodape_y + (rodape_altura - (bbox[3] - bbox[1])) // 2
-    draw.text((preco_x, preco_y), preco, font=fonte_preco, fill=PRETO)
+    preco_y = rodape_y + (rodape_altura - preco_altura) // 2
+    draw.text((preco_x, preco_y), preco_formatado, font=fonte_preco, fill=PRETO)
 
     # ── SALVAR ────────────────────────────────────────────────────────────────
     canvas.save(saida, "JPEG", quality=95)
