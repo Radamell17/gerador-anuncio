@@ -3,7 +3,7 @@ import requests, os
 from io import BytesIO
 
 PRETO     = (0, 0, 0)
-CINZA_ESC = (45, 45, 45)   # rodapé: preto mais claro
+CINZA_ESC = (45, 45, 45)
 AMARELO   = (255, 185, 0)
 BRANCO    = (255, 255, 255)
 
@@ -39,6 +39,15 @@ def fonte(tam, negrito=False):
         if os.path.exists(c): return ImageFont.truetype(c, tam)
     return ImageFont.load_default()
 
+def texto_grosso(draw, pos, texto, font, fill, espessura=3):
+    """Desenha texto com efeito ultra-negrito deslocando em vários sentidos"""
+    x, y = pos
+    for dx in range(-espessura, espessura+1):
+        for dy in range(-espessura, espessura+1):
+            if dx != 0 or dy != 0:
+                draw.text((x+dx, y+dy), texto, font=font, fill=fill)
+    draw.text((x, y), texto, font=font, fill=fill)
+
 def gerar_anuncio(foto1, foto2, foto3, titulo, preco, infos, saida="anuncio.jpg"):
     canvas = Image.new("RGB", (LARGURA, ALTURA), PRETO)
     draw   = ImageDraw.Draw(canvas)
@@ -54,8 +63,9 @@ def gerar_anuncio(foto1, foto2, foto3, titulo, preco, infos, saida="anuncio.jpg"
     BORDA = 6
     draw.rectangle([MARG-BORDA, MARG-BORDA, FOTO_GW+BORDA, TOPO_H-MARG+BORDA], fill=AMARELO)
     draw.rectangle([MARG, MARG, FOTO_GW, TOPO_H-MARG], fill=PRETO)
+
     f_vende = fonte(108, negrito=True)
-    draw.text((MARG+18, MARG+12), "VENDE-SE", font=f_vende, fill=AMARELO)
+    texto_grosso(draw, (MARG+18, MARG+12), "VENDE-SE", f_vende, AMARELO, espessura=2)
 
     # Infos direita — brancas
     info_x = FOTO_GW + BD*3
@@ -69,16 +79,16 @@ def gerar_anuncio(foto1, foto2, foto3, titulo, preco, infos, saida="anuncio.jpg"
     for i, l in enumerate(infos[:5]):
         draw.text((info_x, MARG + i*esp + 4), l.upper(), font=f_i, fill=BRANCO)
 
-    # ── FOTOS ─────────────────────────────────────────────────────────────────
+    # ── FOTOS ────────────────────────────────────────────────────────────────
     canvas.paste(recortar_centro(baixar_imagem(foto1), FOTO_GW, FOTOS_H), (0, FOTOS_Y))
     draw.rectangle([FOTO_GW+BD, FOTOS_Y, LARGURA, FOTOS_Y+FOTOS_H], fill=AMARELO)
     canvas.paste(recortar_centro(baixar_imagem(foto2), FOTO_PW, FOTO_PH), (px, FOTOS_Y+BD))
     canvas.paste(recortar_centro(baixar_imagem(foto3), FOTO_PW, FOTO_PH), (px, FOTOS_Y+BD+FOTO_PH+BD))
 
-    # ── RODAPÉ — cinza escuro ─────────────────────────────────────────────────
+    # ── RODAPÉ ───────────────────────────────────────────────────────────────
     draw.rectangle([0, RODAPE_Y, LARGURA, ALTURA], fill=CINZA_ESC)
 
-    # Título — letras AMARELAS grossas (esquerda, coluna da foto grande)
+    # Título — letras AMARELAS ultra-grossas
     titulo_w = FOTO_GW - MARG*2
     tam_t    = 66
     f_t      = fonte(tam_t, negrito=True)
@@ -88,13 +98,13 @@ def gerar_anuncio(foto1, foto2, foto3, titulo, preco, infos, saida="anuncio.jpg"
     for ln in [l1, l2]:
         while draw.textbbox((0,0),ln,font=f_t)[2] > titulo_w and tam_t > 20:
             tam_t -= 2; f_t = fonte(tam_t, negrito=True)
-    esp_t = tam_t + 10
+    esp_t   = tam_t + 10
     total_t = esp_t * 2
     ty = RODAPE_Y + (RODAPE_H - total_t) // 2
-    draw.text((MARG, ty),        l1, font=f_t, fill=AMARELO)
-    draw.text((MARG, ty+esp_t),  l2, font=f_t, fill=AMARELO)
+    texto_grosso(draw, (MARG, ty),       l1, f_t, AMARELO, espessura=2)
+    texto_grosso(draw, (MARG, ty+esp_t), l2, f_t, AMARELO, espessura=2)
 
-    # Preço — caixa AMARELA, letras PRETAS (direita, alinhado com fotos pequenas)
+    # Preço — caixa AMARELA, letras PRETAS ultra-grossas
     preco_fmt = preco if preco.upper().startswith("R$") else f"R${preco}"
     f_p = fonte(66, negrito=True)
     bb  = draw.textbbox((0,0), preco_fmt, font=f_p)
@@ -106,7 +116,7 @@ def gerar_anuncio(foto1, foto2, foto3, titulo, preco, infos, saida="anuncio.jpg"
     cy2  = cy1 + ph + PAD*2
     draw.rectangle([cx1, cy1, cx2, cy2], fill=AMARELO)
     tx = cx1 + (cx2-cx1-pw)//2
-    draw.text((tx, cy1+PAD), preco_fmt, font=f_p, fill=PRETO)
+    texto_grosso(draw, (tx, cy1+PAD), preco_fmt, f_p, PRETO, espessura=2)
 
     canvas.save(saida, "JPEG", quality=95)
     print(f"✅ Anúncio gerado: {saida}")
