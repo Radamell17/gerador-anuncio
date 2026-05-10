@@ -1,167 +1,129 @@
 from PIL import Image, ImageDraw, ImageFont
 import requests
-import sys
 import os
-import textwrap
 from io import BytesIO
 
-# ─── CONFIGURAÇÕES DO TEMPLATE ───────────────────────────────────────────────
-LARGURA = 1080
-ALTURA = 1080
+PRETO    = (0, 0, 0)
+AMARELO  = (255, 185, 0)
+BRANCO   = (255, 255, 255)
 
-PRETO = (0, 0, 0)
-AMARELO = (255, 185, 0)
-BRANCO = (255, 255, 255)
+LARGURA = 1080
+ALTURA  = 1080
+TOPO_H  = 210
+RODAPE_H = 240
+FOTOS_Y  = TOPO_H
+FOTOS_H  = ALTURA - TOPO_H - RODAPE_H
+RODAPE_Y = TOPO_H + FOTOS_H
 
 def baixar_imagem(url_ou_path):
-    """Carrega imagem de URL ou caminho local"""
     if url_ou_path.startswith("http"):
         resp = requests.get(url_ou_path)
         return Image.open(BytesIO(resp.content)).convert("RGB")
-    else:
-        return Image.open(url_ou_path).convert("RGB")
+    return Image.open(url_ou_path).convert("RGB")
 
 def recortar_centro(img, largura, altura):
-    """Recorta a imagem no centro com o tamanho desejado"""
-    img = img.resize(
-        (max(largura, int(img.width * altura / img.height)),
-         max(altura, int(img.height * largura / img.width))),
-        Image.LANCZOS
-    )
-    x = (img.width - largura) // 2
-    y = (img.height - altura) // 2
+    escala = max(largura / img.width, altura / img.height)
+    novo_w = int(img.width * escala)
+    novo_h = int(img.height * escala)
+    img = img.resize((novo_w, novo_h), Image.LANCZOS)
+    x = (novo_w - largura) // 2
+    y = (novo_h - altura) // 2
     return img.crop((x, y, x + largura, y + altura))
 
-def carregar_fonte(tamanho, negrito=False):
-    """Carrega fonte do diretório do projeto ou do sistema"""
-    # Diretório onde está este script
+def fonte(tamanho, negrito=False):
     base = os.path.dirname(os.path.abspath(__file__))
-
-    fontes_negrito = [
-        os.path.join(base, "LiberationSans-Bold.ttf"),
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
-    ]
-    fontes_normal = [
-        os.path.join(base, "LiberationSans-Regular.ttf"),
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
-    ]
-    lista = fontes_negrito if negrito else fontes_normal
-    for caminho in lista:
-        if os.path.exists(caminho):
-            return ImageFont.truetype(caminho, tamanho)
+    candidatos = (
+        [os.path.join(base, "LiberationSans-Bold.ttf"),
+         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"]
+        if negrito else
+        [os.path.join(base, "LiberationSans-Regular.ttf"),
+         "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
+    )
+    for c in candidatos:
+        if os.path.exists(c):
+            return ImageFont.truetype(c, tamanho)
     return ImageFont.load_default()
 
 def gerar_anuncio(foto1, foto2, foto3, titulo, preco, infos, saida="anuncio.jpg"):
-    """
-    foto1, foto2, foto3: caminhos ou URLs das fotos
-    titulo: ex "Honda Civic 2.0 Aut. 2013/2014"
-    preco: ex "R$72.900"
-    infos: lista com até 4 strings, ex ["Completo", "196.000KM", "Manual e Cópia de Chave", "Bancos de Couro"]
-    saida: nome do arquivo de saída
-    """
-
     canvas = Image.new("RGB", (LARGURA, ALTURA), PRETO)
-    draw = ImageDraw.Draw(canvas)
-
-    # ── ZONAS DE LAYOUT ──────────────────────────────────────────────────────
-    # Topo: faixa preta com VENDE-SE e infos
-    topo_altura = 220
-
-    # Meio: fotos
-    fotos_y_inicio = topo_altura
-    fotos_altura = 620
-
-    # Rodapé: faixa amarela com título e preço
-    rodape_y = fotos_y_inicio + fotos_altura
-    rodape_altura = ALTURA - rodape_y
+    draw   = ImageDraw.Draw(canvas)
 
     # ── TOPO ─────────────────────────────────────────────────────────────────
-    # Caixa amarela "VENDE-SE"
-    vende_largura = 520
-    vende_margem = 25
-    draw.rectangle([vende_margem, vende_margem, vende_largura, topo_altura - vende_margem], fill=AMARELO)
+    MARG    = 22
+    VENDE_W = 530
+    BORDA   = 5
 
-    fonte_vende = carregar_fonte(110, negrito=True)
-    draw.text((vende_margem + 18, vende_margem + 8), "VENDE-SE", font=fonte_vende, fill=PRETO)
+    # Borda amarela + interior preto = efeito de quadro
+    draw.rectangle([MARG-BORDA, MARG-BORDA, VENDE_W+BORDA, TOPO_H-MARG+BORDA], fill=AMARELO)
+    draw.rectangle([MARG, MARG, VENDE_W, TOPO_H-MARG], fill=PRETO)
 
-    # Infos no canto superior direito
-    fonte_info = carregar_fonte(42, negrito=True)
-    info_x = vende_largura + 45
-    info_y = vende_margem + 8
-    espacamento = 50
+    # VENDE-SE em amarelo
+    f_vende = fonte(100, negrito=True)
+    draw.text((MARG+15, MARG+10), "VENDE-SE", font=f_vende, fill=AMARELO)
 
-    for i, linha in enumerate(infos[:4]):
-        draw.text((info_x, info_y + i * espacamento), linha.upper(), font=fonte_info, fill=BRANCO)
+    # Infos à direita em branco
+    f_info = fonte(37, negrito=True)
+    info_x = VENDE_W + 38
+    for i, linha in enumerate(infos[:5]):
+        draw.text((info_x, MARG + i * 44), linha.upper(), font=f_info, fill=BRANCO)
 
-    # ── FOTOS ─────────────────────────────────────────────────────────────────
-    # Foto grande à esquerda (2/3 da largura)
-    foto_grande_largura = 680
-    foto_grande_altura = fotos_altura
+    # ── FOTOS ────────────────────────────────────────────────────────────────
+    BD      = 4          # borda amarela entre fotos
+    FOTO_GW = 676
+    FOTO_PW = LARGURA - FOTO_GW - BD * 3
+    FOTO_PH = (FOTOS_H - BD * 3) // 2
 
-    img1 = baixar_imagem(foto1)
-    img1 = recortar_centro(img1, foto_grande_largura, foto_grande_altura)
-    canvas.paste(img1, (0, fotos_y_inicio))
+    # Foto grande esquerda
+    img1 = recortar_centro(baixar_imagem(foto1), FOTO_GW, FOTOS_H)
+    canvas.paste(img1, (0, FOTOS_Y))
 
-    # Duas fotos à direita (1/3 da largura, empilhadas)
-    foto_peq_largura = LARGURA - foto_grande_largura - 4
-    foto_peq_altura = (fotos_altura // 2) - 2
+    # Fundo amarelo que vira moldura das fotos pequenas
+    draw.rectangle([FOTO_GW + BD, FOTOS_Y, LARGURA, FOTOS_Y + FOTOS_H], fill=AMARELO)
 
-    img2 = baixar_imagem(foto2)
-    img2 = recortar_centro(img2, foto_peq_largura, foto_peq_altura)
-    canvas.paste(img2, (foto_grande_largura + 4, fotos_y_inicio))
+    px = FOTO_GW + BD * 2
+    img2 = recortar_centro(baixar_imagem(foto2), FOTO_PW, FOTO_PH)
+    canvas.paste(img2, (px, FOTOS_Y + BD))
 
-    img3 = baixar_imagem(foto3)
-    img3 = recortar_centro(img3, foto_peq_largura, foto_peq_altura)
-    canvas.paste(img3, (foto_grande_largura + 4, fotos_y_inicio + foto_peq_altura + 4))
+    img3 = recortar_centro(baixar_imagem(foto3), FOTO_PW, FOTO_PH)
+    canvas.paste(img3, (px, FOTOS_Y + BD + FOTO_PH + BD))
 
     # ── RODAPÉ ───────────────────────────────────────────────────────────────
-    draw.rectangle([0, rodape_y, LARGURA, ALTURA], fill=AMARELO)
+    draw.rectangle([0, RODAPE_Y, LARGURA, ALTURA], fill=AMARELO)
 
-    # Título do carro (esquerda) — quebra em 2 linhas
-    fonte_titulo = carregar_fonte(72, negrito=True)
-    titulo_upper = titulo.upper()
-    palavras = titulo_upper.split()
-    meio = len(palavras) // 2
-    linha1 = " ".join(palavras[:meio])
-    linha2 = " ".join(palavras[meio:])
+    # Título em preto (esquerda)
+    f_titulo = fonte(66, negrito=True)
+    t = titulo.upper().split()
+    meio = len(t) // 2
+    l1 = " ".join(t[:meio])
+    l2 = " ".join(t[meio:])
+    MR = 25
+    draw.text((MR, RODAPE_Y + 20),      l1, font=f_titulo, fill=PRETO)
+    draw.text((MR, RODAPE_Y + 20 + 74), l2, font=f_titulo, fill=PRETO)
 
-    margem_rod = 28
-    draw.text((margem_rod, rodape_y + 15), linha1, font=fonte_titulo, fill=PRETO)
-    draw.text((margem_rod, rodape_y + 15 + 78), linha2, font=fonte_titulo, fill=PRETO)
+    # Preço — caixa preta, letras amarelas (direita)
+    preco_fmt = preco if preco.upper().startswith("R$") else f"R${preco}"
+    f_preco   = fonte(70, negrito=True)
+    bb  = draw.textbbox((0,0), preco_fmt, font=f_preco)
+    pw, ph = bb[2]-bb[0], bb[3]-bb[1]
+    PAD = 16
+    cx1 = LARGURA - pw - PAD*2 - MR
+    cy1 = RODAPE_Y + (RODAPE_H - ph - PAD*2) // 2
+    cx2 = LARGURA - MR
+    cy2 = cy1 + ph + PAD*2
+    draw.rectangle([cx1, cy1, cx2, cy2], fill=PRETO)
+    draw.text((cx1+PAD, cy1+PAD), preco_fmt, font=f_preco, fill=AMARELO)
 
-    # Preço (direita) — bem grande
-    fonte_preco = carregar_fonte(90, negrito=True)
-    preco_formatado = preco if preco.upper().startswith("R$") else f"R${preco}"
-    bbox = draw.textbbox((0, 0), preco_formatado, font=fonte_preco)
-    preco_largura = bbox[2] - bbox[0]
-    preco_altura = bbox[3] - bbox[1]
-    preco_x = LARGURA - preco_largura - margem_rod
-    preco_y = rodape_y + (rodape_altura - preco_altura) // 2
-    draw.text((preco_x, preco_y), preco_formatado, font=fonte_preco, fill=PRETO)
-
-    # ── SALVAR ────────────────────────────────────────────────────────────────
     canvas.save(saida, "JPEG", quality=95)
     print(f"✅ Anúncio gerado: {saida}")
     return saida
 
-
-# ─── EXEMPLO DE USO ──────────────────────────────────────────────────────────
 if __name__ == "__main__":
     gerar_anuncio(
-        foto1="foto1.jpg",
-        foto2="foto2.jpg",
-        foto3="foto3.jpg",
+        foto1="foto1.jpg", foto2="foto2.jpg", foto3="foto3.jpg",
         titulo="Honda Civic 2.0 Aut. 2013/2014",
         preco="R$72.900",
-        infos=[
-            "Completo",
-            "196.000KM",
-            "Manual e Cópia de Chave",
-            "Bancos de Couro"
-        ],
+        infos=["Completo","196.000KM","Manual e Cópia de Chave","Bancos de Couro"],
         saida="anuncio_gerado.jpg"
     )
