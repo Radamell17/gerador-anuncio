@@ -33,18 +33,21 @@ def recortar_centro(img, largura, altura):
     return img.crop((x, y, x + largura, y + altura))
 
 def carregar_fonte(tamanho, negrito=False):
-    """Tenta carregar fonte do sistema"""
+    """Carrega fonte do diretório do projeto ou do sistema"""
+    # Diretório onde está este script
+    base = os.path.dirname(os.path.abspath(__file__))
+
     fontes_negrito = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        os.path.join(base, "LiberationSans-Bold.ttf"),
         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
-        "/usr/share/fonts/truetype/ubuntu/Ubuntu-B.ttf",
     ]
     fontes_normal = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        os.path.join(base, "LiberationSans-Regular.ttf"),
         "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
-        "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf",
     ]
     lista = fontes_negrito if negrito else fontes_normal
     for caminho in lista:
