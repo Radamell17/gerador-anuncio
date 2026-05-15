@@ -116,7 +116,7 @@ def gerar_anuncio(foto1, foto2, foto3, titulo, preco, infos, saida="anuncio.jpg"
     cy2  = cy1 + ph + PAD*2
     draw.rectangle([cx1, cy1, cx2, cy2], fill=AMARELO)
     tx = cx1 + (cx2-cx1-pw)//2
-    texto_grosso(draw, (tx, cy1+PAD), preco_fmt, f_p, PRETO, espessura=2)
+    draw.text((tx, cy1+PAD), preco_fmt, font=f_p, fill=PRETO)
 
     canvas.save(saida, "JPEG", quality=95)
     print(f"✅ Anúncio gerado: {saida}")
