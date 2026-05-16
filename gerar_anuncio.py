@@ -88,21 +88,26 @@ def gerar_anuncio(foto1, foto2, foto3, titulo, preco, infos, saida="anuncio.jpg"
     # ── RODAPÉ ───────────────────────────────────────────────────────────────
     draw.rectangle([0, RODAPE_Y, LARGURA, ALTURA], fill=CINZA_ESC)
 
-    # Título — letras AMARELAS ultra-grossas
+    # Título — letras AMARELAS, fonte igual VENDE-SE, centralizado
     titulo_w = FOTO_GW - MARG*2
-    tam_t    = 66
+    tam_t    = 72
     f_t      = fonte(tam_t, negrito=True)
     t        = titulo.upper().split()
     meio     = len(t)//2
     l1, l2   = " ".join(t[:meio]), " ".join(t[meio:])
+    # Reduz até caber na largura
     for ln in [l1, l2]:
-        while draw.textbbox((0,0),ln,font=f_t)[2] > titulo_w and tam_t > 20:
+        while draw.textbbox((0,0), ln, font=f_t)[2] > titulo_w and tam_t > 20:
             tam_t -= 2; f_t = fonte(tam_t, negrito=True)
-    esp_t   = tam_t + 10
+    esp_t   = tam_t + 14
     total_t = esp_t * 2
     ty = RODAPE_Y + (RODAPE_H - total_t) // 2
-    texto_grosso(draw, (MARG, ty),       l1, f_t, AMARELO, espessura=2)
-    texto_grosso(draw, (MARG, ty+esp_t), l2, f_t, AMARELO, espessura=2)
+    # Centraliza cada linha horizontalmente dentro da coluna da foto grande
+    for i, ln in enumerate([l1, l2]):
+        bb = draw.textbbox((0,0), ln, font=f_t)
+        lw = bb[2] - bb[0]
+        lx = MARG + (titulo_w - lw) // 2
+        draw.text((lx, ty + i*esp_t), ln, font=f_t, fill=AMARELO)
 
     # Preço — caixa AMARELA, letras PRETAS ultra-grossas
     preco_fmt = preco if preco.upper().startswith("R$") else f"R${preco}"
